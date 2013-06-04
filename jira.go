@@ -19,10 +19,10 @@ import (
 )
 
 type JiraResults struct {
-	StartAt     int
-	MaxResults  int
-	Total       int
-	Issues      []JiraIssue
+	StartAt    int
+	MaxResults int
+	Total      int
+	Issues     []JiraIssue
 }
 
 type JiraIssue struct {
