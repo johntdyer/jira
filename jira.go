@@ -1,10 +1,11 @@
-package main
+d package main
 
 import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/Unknwon/goconfig"
 	"github.com/wsxiaoys/terminal/color"
 	//"github.com/kless/terminal"
 	"io/ioutil"
@@ -117,7 +118,7 @@ func openTicket(args []string) {
 		fmt.Println("Need ticket number to open")
 		return
 	}
-	url := browseBaseUrl + "/" + args[0]
+	url := getConfigUrl() + "/browse/" + args[0]
 	openBrowser(url)
 	if err != nil {
 		fmt.Println(err)
@@ -130,7 +131,8 @@ func ticketLink(args []string) {
 		fmt.Println("Need a ticket number")
 		return
 	}
-	fmt.Println(browseBaseUrl + "/" + args[0])
+	fmt.Println(getConfigUrl() + "/browse/" + args[0])
+
 	return
 }
 
@@ -139,8 +141,7 @@ func reassignIssue(args []string) {
 		fmt.Println("Need a ticket number and ldap name")
 		return
 	}
-
-	url := baseUrl + "/issue/" + args[0] + "/assignee"
+	url := getConfigUrl() + "/issue/" + args[0] + "/assignee"
 
 	var err error
 	var rawPayload []byte
@@ -193,7 +194,7 @@ func showComments(args []string) {
 		fmt.Println("Need a ticket number to display comments for")
 		return
 	}
-	url := baseUrl + "/issue/" + args[0]
+	url := getConfigUrl() + "/rest/api/2/issue/" + args[0]
 	body, err := makeGetRequest(url)
 	if err != nil {
 		fmt.Println(err)
@@ -208,8 +209,7 @@ func addComment(args []string) {
 		fmt.Println("Need a ticket number and a comment message to add")
 		return
 	}
-	url := baseUrl + "/issue/" + args[0] + "/comment"
-
+	url := getConfigUrl() + "/rest/api/2/issue/" + args[0] + "/comment"
 	payload := map[string]string{
 		"body": args[1],
 	}
@@ -237,7 +237,8 @@ func showDesc(args []string) {
 		fmt.Println("Need a ticket number to display description")
 		return
 	}
-	url := baseUrl + "/issue/" + args[0]
+	url := getConfigUrl() + "/rest/api/2/issue/" + args[0]
+
 	body, err := makeGetRequest(url)
 	if err != nil {
 		fmt.Println(err)
@@ -292,7 +293,7 @@ func downloadAttachments(args []string) {
 		fmt.Println("Need a ticket number to fetch attachments")
 		return
 	}
-	url := baseUrl + "/issue/" + args[0]
+	url := getConfigUrl() + "/rest/api/2/issue/" + args[0]
 	body, err := makeGetRequest(url)
 	if err != nil {
 		fmt.Println(err)
@@ -384,7 +385,8 @@ func openBrowser(url string) (err error) {
 }
 
 func makeGetRequest(url string) (respBody []byte, err error) {
-	username, passwd, err := loadCredentials()
+	c_url, c_username, c_passwd, err := loadConfig()
+	var _ = c_url
 	if err != nil {
 		return
 	}
@@ -395,7 +397,7 @@ func makeGetRequest(url string) (respBody []byte, err error) {
 		return
 	}
 
-	encoded := encodeAuth(username, passwd)
+	encoded := encodeAuth(c_username, c_passwd)
 	req.Header.Add("Authorization", "Basic "+encoded)
 	resp, err := client.Do(req)
 	if err != nil {
@@ -414,7 +416,7 @@ func makeGetRequest(url string) (respBody []byte, err error) {
 }
 
 func makeRequest(method string, url string, payload []byte) (status int, err error) {
-	username, passwd, err := loadCredentials()
+	url, username, passwd, err := loadConfig()
 	if err != nil {
 		return
 	}
@@ -494,7 +496,8 @@ func displayComments(body []byte) {
 
 func makeSearchUrl(query string) (searchUrl string) {
 	encQuery := url.QueryEscape(query)
-	searchUrl = baseUrl + "/search?jql=" + encQuery
+	searchUrl = getConfigUrl() + "/rest/api/2/search?jql=" + encQuery
+
 	return
 }
 
@@ -520,10 +523,36 @@ func loadCredentials() (username, passwd string, err error) {
 	return
 }
 
+func loadConfig() (url, username, passwd string, err error) {
+	homeDir := os.Getenv("HOME")
+	c, err := goconfig.LoadConfigFile(homeDir + "/.jirarc")
+	if err != nil {
+		fmt.Println("Missing JIRA credentials in ~/.jirarc")
+		os.Exit(1)
+	}
+
+	url, _ = c.GetValue("default", "url")
+	username, _ = c.GetValue("default", "username")
+	passwd, _ = c.GetValue("default", "password")
+
+	return
+}
+
+func getConfigUrl() (url string) {
+	homeDir := os.Getenv("HOME")
+	c, err := goconfig.LoadConfigFile(homeDir + "/.jirarc2")
+	if err != nil {
+		fmt.Println("Missing JIRA credentials in ~/.jirarc")
+		os.Exit(1)
+	}
+	url, _ = c.GetValue("default", "url")
+	return
+}
+
 func main() {
-	//	if terminal.SupportANSI() {
-	//		useColor = false
-	//	}
+	//  if terminal.SupportANSI() {
+	//    useColor = false
+	//  }
 	useColor = true
 
 	if len(os.Args) >= 2 {
