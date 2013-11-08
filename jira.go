@@ -540,7 +540,7 @@ func loadConfig() (url, username, passwd string, err error) {
 
 func getConfigUrl() (url string) {
 	homeDir := os.Getenv("HOME")
-	c, err := goconfig.LoadConfigFile(homeDir + "/.jirarc2")
+	c, err := goconfig.LoadConfigFile(homeDir + "/.jirarc")
 	if err != nil {
 		fmt.Println("Missing JIRA credentials in ~/.jirarc")
 		os.Exit(1)
