@@ -1,4 +1,4 @@
-d package main
+package main
 
 import (
 	"bytes"
